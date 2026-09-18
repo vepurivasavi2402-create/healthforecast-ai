@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime
+from datetime import datetime
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from database import Base
@@ -11,26 +14,62 @@ from database import Base
 class HealthProfile(Base):
     __tablename__ = "health_profiles"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
-    user_id = Column(
+    user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=False
     )
 
-    age = Column(Integer)
-    gender = Column(String)
-    height = Column(Float)
-    weight = Column(Float)
+    age: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True
+    )
 
-    blood_pressure = Column(String)
-    blood_sugar = Column(Float)
+    gender: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
 
-    smoking = Column(String)
-    alcohol = Column(String)
+    height: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
 
-    physical_activity = Column(String)
+    weight: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    blood_pressure: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+
+    blood_sugar: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    smoking: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+
+    alcohol: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+
+    physical_activity: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
 
 
 # ==========================================
@@ -40,42 +79,99 @@ class HealthProfile(Base):
 class PredictionHistory(Base):
     __tablename__ = "prediction_history"
 
-    id = Column(
+    id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
         index=True
     )
 
-    user_id = Column(
+    user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=False
     )
 
-    # ML input values
-    age = Column(Float)
-    sex = Column(Float)
-    cp = Column(Float)
-    trestbps = Column(Float)
-    chol = Column(Float)
-    fbs = Column(Float)
-    restecg = Column(Float)
-    thalach = Column(Float)
-    exang = Column(Float)
-    oldpeak = Column(Float)
-    slope = Column(Float)
-    ca = Column(Float)
-    thal = Column(Float)
+    age: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
 
-    # Prediction result
-    prediction = Column(Integer)
+    sex: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
 
-    result = Column(String)
+    cp: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
 
-    risk_probability = Column(Float)
+    trestbps: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
 
-    # Date and time of prediction
-    created_at = Column(
+    chol: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    fbs: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    restecg: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    thalach: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    exang: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    oldpeak: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    slope: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    ca: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    thal: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    prediction: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True
+    )
+
+    result: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
+
+    risk_probability: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
+
+    created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now()
     )

@@ -1,21 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from pathlib import Path
 
+import joblib  # type: ignore[reportMissingTypeStubs]
+import pandas as pd
+from auth.dependencies import get_current_user, require_role
 from database import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from models.health import HealthProfile, PredictionHistory
+from models.user import User
 from schemas import (
     HealthProfileCreate,
     HealthProfileResponse,
-    HeartDiseasePredictRequest
+    HeartDiseasePredictRequest,
 )
-from auth.dependencies import get_current_user, require_role
-from models.user import User
-
-import joblib
-import pandas as pd
-from pathlib import Path
-
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/health",
@@ -144,15 +142,15 @@ def predict_heart_disease(
         base_path = Path(__file__).resolve().parents[2]
 
         model_path = (
-            base_path /
-            "ml" /
-            "heart_disease_model.pkl"
+            base_path
+            / "ml"
+            / "heart_disease_model.pkl"
         )
 
         scaler_path = (
-            base_path /
-            "ml" /
-            "scaler.pkl"
+            base_path
+            / "ml"
+            / "scaler.pkl"
         )
 
         model = joblib.load(model_path)
@@ -263,7 +261,7 @@ def get_prediction_history(
 # ADMIN PREDICTION MONITORING
 # =========================
 
-@router.get("admin")
+@router.get("/admin")
 def get_all_predictions(
     current_user: User = Depends(
         require_role("admin")
@@ -298,7 +296,7 @@ def get_all_predictions(
 # ADMIN HEALTH PROFILES
 # =========================
 
-require_role("admin")
+@router.get("/admin/health-profiles")
 def get_all_health_profiles(
     current_user: User = Depends(
         require_role("admin")
@@ -332,6 +330,8 @@ def get_all_health_profiles(
         }
         for profile, username in profiles
     ]
+
+
 # =========================
 # ADMIN SYSTEM STATUS
 # =========================
@@ -350,21 +350,24 @@ def get_system_status(
     except Exception:
         database_status = "Offline"
 
+    base_path = Path(__file__).resolve().parents[2]
+
     model_path = (
-        Path(__file__).resolve().parents[2]
+        base_path
         / "ml"
         / "heart_disease_model.pkl"
     )
 
     scaler_path = (
-        Path(__file__).resolve().parents[2]
+        base_path
         / "ml"
         / "scaler.pkl"
     )
 
     model_status = (
         "Available"
-        if model_path.exists() and scaler_path.exists()
+        if model_path.exists()
+        and scaler_path.exists()
         else "Unavailable"
     )
 
@@ -373,4 +376,54 @@ def get_system_status(
         "database": database_status,
         "ml_model": model_status,
         "authentication": "Active"
+    }
+
+
+# =========================
+# ADMIN STATISTICS
+# =========================
+
+@router.get("/admin/statistics")
+def get_admin_statistics(
+    current_user: User = Depends(
+        require_role("admin")
+    ),
+    db: Session = Depends(get_db)
+):
+    total_users = db.query(User).count()
+
+    total_health_profiles = db.query(
+        HealthProfile
+    ).count()
+
+    total_predictions = db.query(
+        PredictionHistory
+    ).count()
+
+    low_risk_predictions = db.query(
+        PredictionHistory
+    ).filter(
+        PredictionHistory.risk_probability < 30
+    ).count()
+
+    moderate_risk_predictions = db.query(
+        PredictionHistory
+    ).filter(
+        PredictionHistory.risk_probability >= 30,
+        PredictionHistory.risk_probability < 60
+    ).count()
+
+    higher_risk_predictions = db.query(
+        PredictionHistory
+    ).filter(
+        PredictionHistory.risk_probability >= 60
+    ).count()
+
+    return {
+        "total_users": total_users,
+        "total_health_profiles": total_health_profiles,
+        "total_predictions": total_predictions,
+        "low_risk_predictions": low_risk_predictions,
+        "moderate_risk_predictions": moderate_risk_predictions,
+        "higher_risk_predictions": higher_risk_predictions
     }

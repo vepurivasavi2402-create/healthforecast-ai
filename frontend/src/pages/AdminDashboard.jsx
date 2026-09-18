@@ -5,26 +5,20 @@ function AdminDashboard({ setPage }) {
   const [admin, setAdmin] = useState(null);
 
   const [users, setUsers] = useState([]);
-  const [showUsers, setShowUsers] = useState(false);
-
   const [predictions, setPredictions] = useState([]);
-  const [showPredictions, setShowPredictions] = useState(false);
-
   const [profiles, setProfiles] = useState([]);
-  const [showProfiles, setShowProfiles] = useState(false);
-
   const [systemStatus, setSystemStatus] = useState(null);
+
+  const [showUsers, setShowUsers] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const [showProfiles, setShowProfiles] = useState(false);
   const [showSystemStatus, setShowSystemStatus] = useState(false);
 
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  // ==========================================
-  // CHECK ADMIN ACCESS
-  // ==========================================
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const checkAdminAccess = async () => {
+    const checkAdmin = async () => {
       try {
         const token = localStorage.getItem("token");
 
@@ -34,36 +28,46 @@ function AdminDashboard({ setPage }) {
         }
 
         const response = await API.get(
-          `/auth/admin?token=${token}`
+          `/auth/me?token=${token}`
         );
 
+        if (response.data?.role !== "admin") {
+          setError("Access denied. Admin privileges required.");
+          return;
+        }
+
         setAdmin(response.data);
+
       } catch (error) {
         setError(
           error.response?.data?.detail ||
-            "Admin access denied."
+            "Unable to verify admin access."
         );
       }
     };
 
-    checkAdminAccess();
+    checkAdmin();
   }, []);
 
-  // ==========================================
-  // GET ALL USERS
-  // ==========================================
+  const getToken = () => {
+    const token = localStorage.getItem("token");
 
-  const handleManageUsers = async () => {
+    if (!token) {
+      setError("Please login first.");
+      return null;
+    }
+
+    return token;
+  };
+
+  const loadUsers = async () => {
     try {
-      setMessage("");
       setError("");
+      setMessage("");
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
-      if (!token) {
-        setError("Please login first.");
-        return;
-      }
+      if (!token) return;
 
       const response = await API.get(
         `/auth/users?token=${token}`
@@ -74,6 +78,7 @@ function AdminDashboard({ setPage }) {
       setShowPredictions(false);
       setShowProfiles(false);
       setShowSystemStatus(false);
+
     } catch (error) {
       setError(
         error.response?.data?.detail ||
@@ -82,24 +87,17 @@ function AdminDashboard({ setPage }) {
     }
   };
 
-  // ==========================================
-  // GET ALL PREDICTIONS
-  // ==========================================
-
-  const handleViewPredictions = async () => {
+  const loadPredictions = async () => {
     try {
-      setMessage("");
       setError("");
+      setMessage("");
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
-      if (!token) {
-        setError("Please login first.");
-        return;
-      }
+      if (!token) return;
 
       const response = await API.get(
-        `/health/admin/predictions?token=${token}`
+        `/health/admin?token=${token}`
       );
 
       setPredictions(response.data);
@@ -107,6 +105,7 @@ function AdminDashboard({ setPage }) {
       setShowUsers(false);
       setShowProfiles(false);
       setShowSystemStatus(false);
+
     } catch (error) {
       setError(
         error.response?.data?.detail ||
@@ -115,24 +114,17 @@ function AdminDashboard({ setPage }) {
     }
   };
 
-  // ==========================================
-  // GET ALL HEALTH PROFILES
-  // ==========================================
-
-  const handleViewProfiles = async () => {
+  const loadProfiles = async () => {
     try {
-      setMessage("");
       setError("");
+      setMessage("");
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
-      if (!token) {
-        setError("Please login first.");
-        return;
-      }
+      if (!token) return;
 
       const response = await API.get(
-        `/health/admin/profiles?token=${token}`
+        `/health/admin/health-profiles?token=${token}`
       );
 
       setProfiles(response.data);
@@ -140,6 +132,7 @@ function AdminDashboard({ setPage }) {
       setShowUsers(false);
       setShowPredictions(false);
       setShowSystemStatus(false);
+
     } catch (error) {
       setError(
         error.response?.data?.detail ||
@@ -148,21 +141,14 @@ function AdminDashboard({ setPage }) {
     }
   };
 
-  // ==========================================
-  // GET SYSTEM STATUS
-  // ==========================================
-
-  const handleSystemStatus = async () => {
+  const loadSystemStatus = async () => {
     try {
-      setMessage("");
       setError("");
+      setMessage("");
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
-      if (!token) {
-        setError("Please login first.");
-        return;
-      }
+      if (!token) return;
 
       const response = await API.get(
         `/health/admin/system-status?token=${token}`
@@ -170,10 +156,10 @@ function AdminDashboard({ setPage }) {
 
       setSystemStatus(response.data);
       setShowSystemStatus(true);
-
       setShowUsers(false);
       setShowPredictions(false);
       setShowProfiles(false);
+
     } catch (error) {
       setError(
         error.response?.data?.detail ||
@@ -182,65 +168,38 @@ function AdminDashboard({ setPage }) {
     }
   };
 
-  // ==========================================
-  // LOGOUT
-  // ==========================================
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     setPage("home");
   };
 
-  // ==========================================
-  // ACCESS DENIED
-  // ==========================================
-
   if (error && !admin) {
     return (
       <div className="admin-page">
         <div className="admin-container">
-          <div className="admin-error-card">
+          <h1>Admin Dashboard</h1>
 
-            <div className="admin-error-icon">
-              🔒
-            </div>
-
-            <h1>
-              Access Denied
-            </h1>
-
-            <p>
-              {error}
-            </p>
-
-            <button
-              className="admin-back-button"
-              onClick={() => setPage("dashboard")}
-            >
-              ← Back to Dashboard
-            </button>
-
+          <div className="admin-error">
+            ⚠️ {error}
           </div>
+
+          <button
+            className="admin-back-button"
+            onClick={() => setPage("login")}
+          >
+            Login →
+          </button>
         </div>
       </div>
     );
   }
 
-  // ==========================================
-  // ADMIN DASHBOARD
-  // ==========================================
-
   return (
     <div className="admin-page">
-
       <div className="admin-container">
 
-        {/* HEADER */}
-
         <div className="admin-header">
-
           <div>
-
             <p className="admin-tag">
               HEALTHFORECAST AI
             </p>
@@ -250,10 +209,8 @@ function AdminDashboard({ setPage }) {
             </h1>
 
             <p>
-              Manage and monitor the HealthForecast AI
-              application.
+              Manage and monitor the HealthForecast AI application.
             </p>
-
           </div>
 
           <button
@@ -262,168 +219,127 @@ function AdminDashboard({ setPage }) {
           >
             🚪 Logout
           </button>
-
         </div>
 
-        {/* ADMIN WELCOME */}
-
         {admin && (
-          <div className="admin-card">
-
-            <div className="admin-card-icon">
+          <div className="admin-welcome-card">
+            <div className="admin-welcome-icon">
               🛡️
             </div>
 
             <div>
-
               <h2>
                 Welcome, {admin.username}
               </h2>
 
               <p>
-                You are logged in with administrator
-                privileges.
+                You are logged in with administrator privileges.
               </p>
-
             </div>
-
           </div>
         )}
 
-        {/* ERROR MESSAGE */}
-
-        {error && admin && (
-          <div className="admin-message">
+        {error && (
+          <div className="admin-error">
             ⚠️ {error}
           </div>
         )}
 
-        {/* ADMIN FEATURES */}
+        {message && (
+          <div className="admin-success">
+            ✅ {message}
+          </div>
+        )}
 
-        <div className="admin-grid">
+        <div className="admin-card-grid">
 
-          {/* USER MANAGEMENT */}
-
-          <div className="admin-feature-card">
-
-            <div className="admin-feature-icon">
+          <div className="admin-action-card">
+            <div className="admin-card-icon">
               👥
             </div>
 
-            <h3>
+            <h2>
               User Management
-            </h3>
+            </h2>
 
             <p>
-              Manage registered users and monitor
-              account information.
+              Manage registered users and monitor account information.
             </p>
 
             <button
-              onClick={handleManageUsers}
+              onClick={loadUsers}
             >
               Manage Users →
             </button>
-
           </div>
 
-          {/* PREDICTION MONITORING */}
-
-          <div className="admin-feature-card">
-
-            <div className="admin-feature-icon">
+          <div className="admin-action-card">
+            <div className="admin-card-icon">
               📊
             </div>
 
-            <h3>
+            <h2>
               Prediction Monitoring
-            </h3>
+            </h2>
 
             <p>
-              Monitor heart disease prediction activity
-              across the application.
+              Monitor heart disease prediction activity across the application.
             </p>
 
             <button
-              onClick={handleViewPredictions}
+              onClick={loadPredictions}
             >
               View Predictions →
             </button>
-
           </div>
 
-          {/* HEALTH PROFILES */}
-
-          <div className="admin-feature-card">
-
-            <div className="admin-feature-icon">
+          <div className="admin-action-card">
+            <div className="admin-card-icon">
               🩺
             </div>
 
-            <h3>
+            <h2>
               Health Profiles
-            </h3>
+            </h2>
 
             <p>
-              Review application health profile activity
-              and statistics.
+              Review application health profile activity and statistics.
             </p>
 
             <button
-              onClick={handleViewProfiles}
+              onClick={loadProfiles}
             >
               View Profiles →
             </button>
-
           </div>
 
-          {/* SYSTEM STATUS */}
-
-          <div className="admin-feature-card">
-
-            <div className="admin-feature-icon">
+          <div className="admin-action-card">
+            <div className="admin-card-icon">
               ⚙️
             </div>
 
-            <h3>
+            <h2>
               System Status
-            </h3>
+            </h2>
 
             <p>
-              Monitor the status of the HealthForecast AI
-              system.
+              Monitor the status of the HealthForecast AI system.
             </p>
 
             <button
-              onClick={handleSystemStatus}
+              onClick={loadSystemStatus}
             >
               System Status →
             </button>
-
           </div>
 
         </div>
 
-        {/* MESSAGE */}
-
-        {message && (
-          <div className="admin-message">
-            ℹ️ {message}
-          </div>
-        )}
-
-        {/* ==========================================
-            USER LIST
-        ========================================== */}
-
         {showUsers && (
+          <div className="admin-data-card">
 
-          <div className="admin-users-section">
-
-            <div className="admin-users-header">
-
+            <div className="admin-section-header">
               <div>
-
                 <h2>
                   👥 Registered Users
                 </h2>
@@ -431,7 +347,6 @@ function AdminDashboard({ setPage }) {
                 <p>
                   Total users: {users.length}
                 </p>
-
               </div>
 
               <button
@@ -439,89 +354,50 @@ function AdminDashboard({ setPage }) {
               >
                 ✕ Close
               </button>
-
             </div>
 
-            <div className="admin-users-table-wrapper">
+            {users.length > 0 ? (
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
 
-              <table className="admin-users-table">
-
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {users.length > 0 ? (
-
-                    users.map((user) => (
-
+                  <tbody>
+                    {users.map((user) => (
                       <tr key={user.id}>
-
-                        <td>
-                          {user.id}
-                        </td>
-
-                        <td>
-                          {user.username}
-                        </td>
-
-                        <td>
-                          {user.email}
-                        </td>
-
-                        <td>
-                          {user.role}
-                        </td>
-
+                        <td>{user.id}</td>
+                        <td>{user.username}</td>
+                        <td>{user.email}</td>
+                        <td>{user.role}</td>
                         <td>
                           {user.is_active
                             ? "Active"
                             : "Inactive"}
                         </td>
-
                       </tr>
-
-                    ))
-
-                  ) : (
-
-                    <tr>
-                      <td colSpan="5">
-                        No users found.
-                      </td>
-                    </tr>
-
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>No users found.</p>
+            )}
 
           </div>
-
         )}
 
-        {/* ==========================================
-            PREDICTION LIST
-        ========================================== */}
-
         {showPredictions && (
+          <div className="admin-data-card">
 
-          <div className="admin-users-section">
-
-            <div className="admin-users-header">
-
+            <div className="admin-section-header">
               <div>
-
                 <h2>
                   📊 Prediction Monitoring
                 </h2>
@@ -529,57 +405,39 @@ function AdminDashboard({ setPage }) {
                 <p>
                   Total predictions: {predictions.length}
                 </p>
-
               </div>
 
               <button
-                onClick={() =>
-                  setShowPredictions(false)
-                }
+                onClick={() => setShowPredictions(false)}
               >
                 ✕ Close
               </button>
-
             </div>
 
-            <div className="admin-users-table-wrapper">
+            {predictions.length > 0 ? (
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>User ID</th>
+                      <th>Prediction</th>
+                      <th>Result</th>
+                      <th>Risk %</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
 
-              <table className="admin-users-table">
-
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>User</th>
-                    <th>Result</th>
-                    <th>Risk Probability</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {predictions.length > 0 ? (
-
-                    predictions.map((prediction) => (
-
+                  <tbody>
+                    {predictions.map((prediction) => (
                       <tr key={prediction.id}>
-
-                        <td>
-                          {prediction.id}
-                        </td>
-
-                        <td>
-                          {prediction.username}
-                        </td>
-
-                        <td>
-                          {prediction.result}
-                        </td>
-
+                        <td>{prediction.id}</td>
+                        <td>{prediction.user_id}</td>
+                        <td>{prediction.prediction}</td>
+                        <td>{prediction.result}</td>
                         <td>
                           {prediction.risk_probability}%
                         </td>
-
                         <td>
                           {prediction.created_at
                             ? new Date(
@@ -587,43 +445,23 @@ function AdminDashboard({ setPage }) {
                               ).toLocaleString()
                             : "N/A"}
                         </td>
-
                       </tr>
-
-                    ))
-
-                  ) : (
-
-                    <tr>
-                      <td colSpan="5">
-                        No predictions found.
-                      </td>
-                    </tr>
-
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>No predictions found.</p>
+            )}
 
           </div>
-
         )}
 
-        {/* ==========================================
-            HEALTH PROFILE LIST
-        ========================================== */}
-
         {showProfiles && (
+          <div className="admin-data-card">
 
-          <div className="admin-users-section">
-
-            <div className="admin-users-header">
-
+            <div className="admin-section-header">
               <div>
-
                 <h2>
                   🩺 Health Profiles
                 </h2>
@@ -631,237 +469,111 @@ function AdminDashboard({ setPage }) {
                 <p>
                   Total profiles: {profiles.length}
                 </p>
-
               </div>
 
               <button
-                onClick={() =>
-                  setShowProfiles(false)
-                }
+                onClick={() => setShowProfiles(false)}
               >
                 ✕ Close
               </button>
-
             </div>
 
-            <div className="admin-users-table-wrapper">
-
-              <table className="admin-users-table">
-
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>User</th>
-                    <th>Age</th>
-                    <th>Gender</th>
-                    <th>Height</th>
-                    <th>Weight</th>
-                    <th>Blood Pressure</th>
-                    <th>Blood Sugar</th>
-                    <th>Smoking</th>
-                    <th>Alcohol</th>
-                    <th>Physical Activity</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {profiles.length > 0 ? (
-
-                    profiles.map((profile) => (
-
-                      <tr key={profile.id}>
-
-                        <td>
-                          {profile.id}
-                        </td>
-
-                        <td>
-                          {profile.username}
-                        </td>
-
-                        <td>
-                          {profile.age}
-                        </td>
-
-                        <td>
-                          {profile.gender}
-                        </td>
-
-                        <td>
-                          {profile.height} cm
-                        </td>
-
-                        <td>
-                          {profile.weight} kg
-                        </td>
-
-                        <td>
-                          {profile.blood_pressure}
-                        </td>
-
-                        <td>
-                          {profile.blood_sugar}
-                        </td>
-
-                        <td>
-                          {profile.smoking}
-                        </td>
-
-                        <td>
-                          {profile.alcohol}
-                        </td>
-
-                        <td>
-                          {profile.physical_activity}
-                        </td>
-
-                      </tr>
-
-                    ))
-
-                  ) : (
-
+            {profiles.length > 0 ? (
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
                     <tr>
-                      <td colSpan="11">
-                        No health profiles found.
-                      </td>
+                      <th>ID</th>
+                      <th>User ID</th>
+                      <th>Age</th>
+                      <th>Gender</th>
+                      <th>Height</th>
+                      <th>Weight</th>
+                      <th>Blood Pressure</th>
+                      <th>Blood Sugar</th>
+                      <th>Activity</th>
                     </tr>
+                  </thead>
 
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
+                  <tbody>
+                    {profiles.map((profile) => (
+                      <tr key={profile.id}>
+                        <td>{profile.id}</td>
+                        <td>{profile.user_id}</td>
+                        <td>{profile.age}</td>
+                        <td>{profile.gender}</td>
+                        <td>{profile.height} cm</td>
+                        <td>{profile.weight} kg</td>
+                        <td>{profile.blood_pressure}</td>
+                        <td>{profile.blood_sugar}</td>
+                        <td>{profile.physical_activity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>No health profiles found.</p>
+            )}
 
           </div>
-
         )}
 
-        {/* ==========================================
-            SYSTEM STATUS
-        ========================================== */}
-
         {showSystemStatus && systemStatus && (
+          <div className="admin-data-card">
 
-          <div className="admin-users-section">
-
-            <div className="admin-users-header">
-
+            <div className="admin-section-header">
               <div>
-
                 <h2>
                   ⚙️ System Status
                 </h2>
 
                 <p>
-                  Current HealthForecast AI system status
+                  Current HealthForecast AI system information.
                 </p>
-
               </div>
 
               <button
-                onClick={() =>
-                  setShowSystemStatus(false)
-                }
+                onClick={() => setShowSystemStatus(false)}
               >
                 ✕ Close
               </button>
-
             </div>
 
-            <div className="admin-grid">
+            <div className="system-status-grid">
 
-              <div className="admin-feature-card">
+              {Object.entries(systemStatus).map(
+                ([key, value]) => (
+                  <div
+                    className="system-status-item"
+                    key={key}
+                  >
+                    <span>
+                      {key.replaceAll("_", " ")}
+                    </span>
 
-                <div className="admin-feature-icon">
-                  🖥️
-                </div>
-
-                <h3>
-                  Backend API
-                </h3>
-
-                <p>
-                  {systemStatus.backend}
-                </p>
-
-              </div>
-
-              <div className="admin-feature-card">
-
-                <div className="admin-feature-icon">
-                  🗄️
-                </div>
-
-                <h3>
-                  Database
-                </h3>
-
-                <p>
-                  {systemStatus.database}
-                </p>
-
-              </div>
-
-              <div className="admin-feature-card">
-
-                <div className="admin-feature-icon">
-                  🤖
-                </div>
-
-                <h3>
-                  ML Model
-                </h3>
-
-                <p>
-                  {systemStatus.ml_model}
-                </p>
-
-              </div>
-
-              <div className="admin-feature-card">
-
-                <div className="admin-feature-icon">
-                  🔐
-                </div>
-
-                <h3>
-                  Authentication
-                </h3>
-
-                <p>
-                  {systemStatus.authentication}
-                </p>
-
-              </div>
+                    <strong>
+                      {typeof value === "object"
+                        ? JSON.stringify(value)
+                        : String(value)}
+                    </strong>
+                  </div>
+                )
+              )}
 
             </div>
 
           </div>
-
         )}
 
-        {/* ==========================================
-            NAVIGATION
-        ========================================== */}
-
-        <div className="admin-navigation">
-
-          <button
-            onClick={() =>
-              setPage("dashboard")
-            }
-          >
-            ← Return to Dashboard
-          </button>
-
-        </div>
+        <button
+          className="admin-return-button"
+          onClick={() => setPage("dashboard")}
+        >
+          ← Return to Dashboard
+        </button>
 
       </div>
-
     </div>
   );
 }
